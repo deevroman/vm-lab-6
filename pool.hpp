@@ -1,10 +1,37 @@
 #ifndef POOL_HPP
 #define POOL_HPP
 
+#include <cassert>
 #include <cstdlib>
 #include <iomanip>
+#include <signal.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
+inline void overflow_signal_handler(int, siginfo_t*, void*)
+{
+    constexpr char msg[] = "Pool overflow\n";
+    write(STDERR_FILENO, msg, sizeof(msg) - 1);
+    _exit(EXIT_FAILURE);
+}
+
+struct SigsegvInstaller
+{
+    SigsegvInstaller()
+    {
+        struct sigaction action{};
+        action.sa_sigaction = overflow_signal_handler;
+        sigemptyset(&action.sa_mask);
+        action.sa_flags = SA_SIGINFO;
+
+        int segv_rc = sigaction(SIGSEGV, &action, nullptr);
+        int bus_rc = sigaction(SIGBUS, &action, nullptr);
+        assert(segv_rc == 0 && "Cannot install SIGSEGV handler");
+        assert(bus_rc == 0 && "Cannot install SIGBUS handler");
+    }
+};
+
+inline SigsegvInstaller sigsegv_installer;
 
 template <class T>
 class Pool
@@ -16,6 +43,9 @@ class Pool
 public:
     Pool(size_t capacity)
     {
+#ifdef BAD_POOL
+        capacity /= 1.5;
+#endif
         size_t page_size = sysconf(_SC_PAGESIZE);
         size_t guard_size = (sizeof(T) + page_size - 1) / page_size * page_size;
         size_t real_capacity = (capacity + page_size - 1) / page_size * page_size;
