@@ -47,8 +47,8 @@ public:
         capacity /= 1.5;
 #endif
         size_t page_size = sysconf(_SC_PAGESIZE);
-        size_t guard_size = (sizeof(T) + page_size - 1) / page_size * page_size;
-        size_t real_capacity = (capacity + page_size - 1) / page_size * page_size;
+        size_t guard_size = std::max(std::bit_ceil(sizeof(T)), page_size);
+        size_t real_capacity = std::max(std::bit_ceil(capacity), page_size);
         pool_size = real_capacity + guard_size;
 
         start_addr =
