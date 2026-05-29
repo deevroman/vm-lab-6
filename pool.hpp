@@ -33,6 +33,8 @@ struct SigsegvInstaller
 
 inline SigsegvInstaller sigsegv_installer;
 
+inline size_t align_to_page_size(const size_t x, size_t page_size) { return (x + page_size - 1) & ~(page_size - 1); }
+
 template <class T>
 class Pool
 {
@@ -47,8 +49,8 @@ public:
         capacity /= 1.5;
 #endif
         size_t page_size = sysconf(_SC_PAGESIZE);
-        size_t guard_size = std::max(std::bit_ceil(sizeof(T)), page_size);
-        size_t real_capacity = std::max(std::bit_ceil(capacity), page_size);
+        size_t guard_size = align_to_page_size(sizeof(T), page_size);
+        size_t real_capacity = align_to_page_size(capacity, page_size);
         pool_size = real_capacity + guard_size;
 
         start_addr =
