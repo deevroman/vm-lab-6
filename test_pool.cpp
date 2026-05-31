@@ -32,7 +32,11 @@ Pool<Node>* p;
 
 static inline Node* create_list(unsigned n)
 {
+#ifndef BAD_POOL
     p = new Pool<Node>(n * sizeof(Node));
+#else
+    p = new Pool<Node>(n * sizeof(Node) / 1.5);
+#endif
     Node* list = nullptr;
     for (unsigned i = 0; i < n; i++)
         list = new (*p) Node({list, i});
